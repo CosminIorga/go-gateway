@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,8 +14,29 @@ type HTTPResponse struct {
 	body   interface{}
 }
 
+type ForwardPath struct {
+	mainPath   string
+	secondPath string
+}
+
 func main() {
 	router := gin.Default()
+
+	router.Any("*forwardPath", func(c *gin.Context) {
+		forwardPath := splitForwardPath(c)
+
+		ok := checkRouteAvailable(forwardPath.mainPath)
+
+		if !ok {
+			c.JSON(422, gin.H{
+				"message": "Unauthorized",
+			})
+
+			return
+		}
+
+		c.JSON(200, forwardPath)
+	})
 
 	router.GET("/", func(c *gin.Context) {
 		//Define a new channel
@@ -22,7 +44,6 @@ func main() {
 		//List of APIs to call
 		urls := [2]string{"https://jsonplaceholder.typicode.com/posts/1", "https://jsonplaceholder.typicode.com/posts/1/comments"}
 		for _, url := range urls {
-			//For each URL call the DOHTTPGet function (notice the go keyword)
 			go DoHTTPGet(url, ch)
 		}
 
@@ -34,46 +55,24 @@ func main() {
 		}
 
 		c.JSON(200, response)
-
-		// postUrls := "https://jsonplaceholder.typicode.com/posts"
-
-		// var myPostParam []map[string]string
-		// value1 := map[string]string{"title": "test1", "body": "body1", "userId": "1"}
-		// value2 := map[string]string{"title": "test2", "body": "body2", "userId": "2"}
-
-		// myPostParam = append(myPostParam, value1, value2)
-
-		// for _, value := range myPostParam {
-		// 	//For each URL call the DOHTTPPost function (notice the go keyword)
-		// 	go DoHTTPPost(postUrls, value, ch)
-		// }
-
-		// for range myPostParam {
-		// 	// Use the response (<-ch).body
-		// 	fmt.Println((<-ch).status)
-		// }
 	})
 
-	// router.GET("/blocks/*path", func(c *gin.Context) {
-	// 	forwardPath := c.Param("path")
-	// 	forwardQuery := c.Request.URL.Query()
-
-	// 	c.JSON(200, gin.H{
-	// 		"path":  forwardPath,
-	// 		"query": forwardQuery,
-	// 	})
-	// })
-
-	// router.Any("/*name/*path", funct(c *gin.Context) {
-	//   name := c.Param("name")
-	//   path := c.Param("path")
-	//   query := c.Request.URL.Query()
-
-	//   reverseproxy.NewReverseProxy()
-
-	// })
-
 	router.Run() // listen and serve on 0.0.0.0:8080
+}
+
+func checkRouteAvailable(route string) bool {
+	return false
+}
+
+func splitForwardPath(c *gin.Context) ForwardPath {
+	forwardPath, _ := c.Params.Get("forwardPath")
+
+	splitPath := strings.SplitN(forwardPath, "/", 3)
+
+	return ForwardPath{
+		splitPath[1],
+		splitPath[2],
+	}
 }
 
 func DoHTTPGet(url string, ch chan<- HTTPResponse) {
