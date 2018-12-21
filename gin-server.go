@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,7 +10,7 @@ import (
 //Define a new structure that represents out API response (response status and body)
 type HTTPResponse struct {
 	status string
-	body   []byte
+	body   interface{}
 }
 
 func main() {
@@ -32,15 +30,7 @@ func main() {
 
 		// Get the response
 		for _, url := range urls {
-			// Use the response (<-ch).body
-			// fmt.Println((<-ch).status)
-			json, err := json.Marshal((<-ch).body)
-
-			if err != nil {
-				panic(err)
-			}
-
-			response[url] = json
+			response[url] = (<-ch).body
 		}
 
 		c.JSON(200, response)
@@ -89,14 +79,13 @@ func main() {
 func DoHTTPGet(url string, ch chan<- HTTPResponse) {
 	//Execute the HTTP get
 	httpResponse, _ := http.Get(url)
-	httpBody, _ := ioutil.ReadAll(httpResponse.Body)
-	//Send an HTTPResponse back to the channel
-	ch <- HTTPResponse{httpResponse.Status, httpBody}
-}
+	var httpBody interface{}
+	err := json.NewDecoder(httpResponse.Body).Decode(&httpBody)
 
-func DoHTTPPost(url string, param map[string]string, ch chan<- HTTPResponse) {
-	jsonValue, _ := json.Marshal(param)
-	httpResponse, _ := http.Post(url, "application/json", bytes.NewBuffer(jsonValue))
-	httpBody, _ := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
+		panic(err)
+	}
+	// httpBody, _ := ioutil.ReadAll(httpResponse.Body)
+	//Send an HTTPResponse back to the channel
 	ch <- HTTPResponse{httpResponse.Status, httpBody}
 }
