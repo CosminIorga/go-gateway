@@ -7,9 +7,11 @@ func main() {
 
 	router.GET("/blocks/*path", func(c *gin.Context) {
 		forwardPath := c.Param("path")
+		forwardQuery := c.Request.URL.Query()
 
 		c.JSON(200, gin.H{
-			"path": forwardPath,
+			"path":  forwardPath,
+			"query": forwardQuery,
 		})
 	})
 
