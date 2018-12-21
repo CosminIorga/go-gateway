@@ -2,11 +2,22 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
+
+type Config struct {
+	Hosts []struct {
+		Host   string `json:"host"`
+		Routes []struct {
+			Route string `json:"route"`
+		}
+	} `json:"hosts"`
+}
 
 //Define a new structure that represents out API response (response status and body)
 type HTTPResponse struct {
@@ -38,6 +49,7 @@ func main() {
 		c.JSON(200, forwardPath)
 	})
 
+	/**
 	router.GET("/", func(c *gin.Context) {
 		//Define a new channel
 		var ch chan HTTPResponse = make(chan HTTPResponse)
@@ -56,11 +68,25 @@ func main() {
 
 		c.JSON(200, response)
 	})
-
+	*/
 	router.Run() // listen and serve on 0.0.0.0:8080
 }
 
 func checkRouteAvailable(route string) bool {
+
+	config := loadConfiguration("./config/config.json")
+	for _, host := range config.Hosts {
+		fmt.Println(host.Host)
+		for _, routes := range host.Routes {
+			fmt.Println(route)
+			fmt.Println(host.Host+routes.Route)
+			
+			if route == host.Host+routes.Route {
+				return true
+			}
+		}
+
+	}
 	return false
 }
 
@@ -87,4 +113,16 @@ func DoHTTPGet(url string, ch chan<- HTTPResponse) {
 	// httpBody, _ := ioutil.ReadAll(httpResponse.Body)
 	//Send an HTTPResponse back to the channel
 	ch <- HTTPResponse{httpResponse.Status, httpBody}
+}
+
+func loadConfiguration(file string) Config {
+	var config Config
+	configFile, err := os.Open(file)
+	defer configFile.Close()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	jsonParser := json.NewDecoder(configFile)
+	jsonParser.Decode(&config)
+	return config
 }

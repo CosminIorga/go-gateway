@@ -1,0 +1,19 @@
+{
+    "hosts": [
+        {
+            "host": "ms-product.dev.adoreme.com",
+            "routes": [
+                {"route": "/simple_products"},
+                {"route": "/bundle_products"},
+                {"route": "/configurable_products"}
+            ]
+        },
+        {
+            "host": "ms-category.dev.adoreme.com",
+            "routes": [
+                {"route": "/categories"},
+                {"route": "/tree"}
+            ]
+        }
+    ]
+}
